@@ -584,7 +584,10 @@ function parseIntentToDeterministicPlan(
   // ============================================================================
   // Parse keywords with negation handling
   const hasNavbar = parseComponentRequirement('navbar', intent) || 
-    (parseComponentRequirement('nav bar', intent) || parseComponentRequirement('navigation', intent));
+    parseComponentRequirement('nav bar', intent) || 
+    parseComponentRequirement('navigation bar', intent) ||
+    parseComponentRequirement('navigation', intent) ||
+    parseComponentRequirement('menu items', intent);
   const hasSidebar = parseComponentRequirement('sidebar', intent) || 
     parseComponentRequirement('side bar', intent);
   
@@ -594,7 +597,9 @@ function parseIntentToDeterministicPlan(
     lower.includes('two cards');
   const hasTwoColumns = mentionsTwoColumns && !lower.includes('remove') && !lower.includes('without');
   
-  const hasChart = parseComponentRequirement('chart', intent) || parseComponentRequirement('graph', intent);
+  const hasChart = parseComponentRequirement('chart', intent) || 
+    parseComponentRequirement('graph', intent) ||
+    parseComponentRequirement('visualization', intent);
   const hasTable = parseComponentRequirement('table', intent);
   const hasForm = parseComponentRequirement('form', intent) || parseComponentRequirement('input', intent) || parseComponentRequirement('login', intent);
   const hasModal = parseComponentRequirement('modal', intent) || parseComponentRequirement('dialog', intent);
@@ -607,10 +612,16 @@ function parseIntentToDeterministicPlan(
   const hasProfileCard = /profile\s+card|user\s+card|contact\s+card|team\s+member|showing.*profile/i.test(lower);
   const hasStatCard = /stat\s+card|statistics|metric|counter|number|stat.*display/i.test(lower);
   const hasHeroSection = /hero|banner|header\s+section|large.*header|featured|showcase/i.test(lower);
-  const hasGallery = /gallery|grid.*images|image\s+grid|photos|portfolio|collection/i.test(lower);
+  const hasGallery = /gallery|grid.*images|image\s+grid|photos|portfolio|collection|card\s+grid|showing.*cards/i.test(lower);
   const hasTestimonial = /testimonial|review|comment|feedback.*display|quote\s+card/i.test(lower);
   const hasPricing = /pricing\s+card|price.*display|tier|plan.*card|pricing\s+table/i.test(lower);
   const hasSearchBar = /search\s+bar|search\s+box|find.*search|search\s+with/i.test(lower);
+  
+  // Additional patterns for common UI structures
+  const hasMenuStructure = /menu|navigation\s+menu|menu\s+items|navigation\s+links/i.test(lower);
+  const hasSettingsPanel = /settings|settings\s+panel|preference|configuration|options/i.test(lower);
+  const hasListStructure = /list|listing|items\s+list|list\s+view|item.*list/i.test(lower);
+  const hasButtonGroup = /button.*group|multiple\s+button|action\s+button|button.*bar/i.test(lower);
 
   // ============================================================================
   // MULTI-LEVEL LAYOUT ROUTING (Priority Order)
@@ -727,7 +738,27 @@ function parseIntentToDeterministicPlan(
     return createItemCardPlan(modificationType);
   }
 
-  // 22. Form
+  // 22. Menu Structure
+  if (hasMenuStructure && !hasNavbar && !hasSidebar) {
+    return createNavbarOnlyLayout(modificationType);
+  }
+
+  // 23. Settings Panel
+  if (hasSettingsPanel) {
+    return createSettingsPanelPlan(modificationType);
+  }
+
+  // 24. List Structure
+  if (hasListStructure) {
+    return createListPlan(modificationType);
+  }
+
+  // 25. Button Group
+  if (hasButtonGroup) {
+    return createButtonGroupPlan(modificationType);
+  }
+
+  // 26. Form
   if (hasForm) {
     return createFormPlan(modificationType, intent);
   }
@@ -2004,6 +2035,133 @@ function createItemCardPlan(modificationType: 'create' | 'edit' | 'regenerate'):
               id: 'root_Card_0_Button_0',
               component: 'Button',
               props: { label: 'View Details', variant: 'primary' },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Settings Panel Plan
+ * Creates a card with multiple settings sections
+ */
+function createSettingsPanelPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Settings', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'General Settings', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_1',
+              component: 'Card',
+              props: { title: 'Privacy Settings', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_2',
+              component: 'Card',
+              props: { title: 'Notification Settings', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Button_0',
+              component: 'Button',
+              props: { label: 'Save Settings', variant: 'primary' },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * List Plan
+ * Creates a list view with multiple items
+ */
+function createListPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Items List', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'Item 1', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_1',
+              component: 'Card',
+              props: { title: 'Item 2', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_2',
+              component: 'Card',
+              props: { title: 'Item 3', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_3',
+              component: 'Card',
+              props: { title: 'Item 4', padding: 12 },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Button Group Plan
+ * Creates a card with multiple action buttons
+ */
+function createButtonGroupPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Actions', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Button_0',
+              component: 'Button',
+              props: { label: 'Primary Action', variant: 'primary' },
+            },
+            {
+              id: 'root_Card_0_Button_1',
+              component: 'Button',
+              props: { label: 'Secondary Action', variant: 'secondary' },
+            },
+            {
+              id: 'root_Card_0_Button_2',
+              component: 'Button',
+              props: { label: 'Tertiary Action', variant: 'secondary' },
             },
           ],
         },
