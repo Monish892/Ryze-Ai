@@ -56,7 +56,7 @@ export function renderNode(node: LayoutNode | ComponentNode): React.ReactNode {
 
   // Render children recursively
   const children = ('children' in node && node.children)
-    ? node.children.map((child: LayoutNode | ComponentNode, idx) => (
+    ? node.children.map((child: LayoutNode | ComponentNode, idx: number) => (
         <React.Fragment key={child.id || idx}>
           {renderNode(child)}
         </React.Fragment>
