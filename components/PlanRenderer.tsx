@@ -7,7 +7,7 @@ import { ALLOWED_COMPONENTS } from '@/components/system';
 /**
  * Safe Plan-to-React Renderer
  * Converts validated UIPlan to actual React components
- * 
+ *
  * SECURITY:
  * - Only renders whitelisted components
  * - No eval, Function, or dynamic code execution
