@@ -484,6 +484,18 @@ function parseIntentToDeterministicPlan(
   const hasModal = parseComponentRequirement('modal', intent) || parseComponentRequirement('dialog', intent);
   const hasDashboard = parseComponentRequirement('dashboard', intent) || parseComponentRequirement('overview', intent);
 
+  // NEW: Detect specific UI patterns
+  const hasProductCard = /product\s+card|product\s+display|product\s+listing|product\s+item|displaying.*product/i.test(lower) &&
+    (lower.includes('image') || lower.includes('title') || lower.includes('price') || lower.includes('button'));
+  const hasItemCard = /item\s+card|listing\s+card|card.*item|item.*card/i.test(lower) && !hasProductCard;
+  const hasProfileCard = /profile\s+card|user\s+card|contact\s+card|team\s+member|showing.*profile/i.test(lower);
+  const hasStatCard = /stat\s+card|statistics|metric|counter|number|stat.*display/i.test(lower);
+  const hasHeroSection = /hero|banner|header\s+section|large.*header|featured|showcase/i.test(lower);
+  const hasGallery = /gallery|grid.*images|image\s+grid|photos|portfolio|collection/i.test(lower);
+  const hasTestimonial = /testimonial|review|comment|feedback.*display|quote\s+card/i.test(lower);
+  const hasPricing = /pricing\s+card|price.*display|tier|plan.*card|pricing\s+table/i.test(lower);
+  const hasSearchBar = /search\s+bar|search\s+box|find.*search|search\s+with/i.test(lower);
+
   // ============================================================================
   // MULTI-LEVEL LAYOUT ROUTING (Priority Order)
   // ============================================================================
@@ -550,12 +562,61 @@ function parseIntentToDeterministicPlan(
     return createModalPlan(modificationType);
   }
 
-  // 13. Form
+  // ============================================================================
+  // SPECIALIZED UI PATTERNS (New)
+  // ============================================================================
+
+  // 13. Product Card
+  if (hasProductCard) {
+    return createProductCardPlan(modificationType);
+  }
+
+  // 14. Profile Card
+  if (hasProfileCard) {
+    return createProfileCardPlan(modificationType);
+  }
+
+  // 15. Stat Card
+  if (hasStatCard) {
+    return createStatCardPlan(modificationType);
+  }
+
+  // 16. Hero Section
+  if (hasHeroSection) {
+    return createHeroSectionPlan(modificationType);
+  }
+
+  // 17. Gallery/Grid
+  if (hasGallery) {
+    return createGalleryPlan(modificationType);
+  }
+
+  // 18. Testimonial/Review Card
+  if (hasTestimonial) {
+    return createTestimonialPlan(modificationType);
+  }
+
+  // 19. Pricing Card
+  if (hasPricing) {
+    return createPricingCardPlan(modificationType);
+  }
+
+  // 20. Search Bar
+  if (hasSearchBar) {
+    return createSearchBarPlan(modificationType);
+  }
+
+  // 21. Item Card
+  if (hasItemCard) {
+    return createItemCardPlan(modificationType);
+  }
+
+  // 22. Form
   if (hasForm) {
     return createFormPlan(modificationType, intent);
   }
 
-  // 14. Table
+  // 23. Table
   if (hasTable) {
     return createTablePlan(modificationType);
   }
@@ -1468,6 +1529,353 @@ function createDefaultPlan(modificationType: 'create' | 'edit' | 'regenerate'): 
           component: 'Card',
           props: { title: 'Welcome', padding: 16 },
           // Card is intentionally empty - user intent was vague, not adding assumptions
+        },
+      ],
+    },
+  };
+}
+
+// ============================================================================
+// SPECIALIZED UI PATTERN PLANS
+// ============================================================================
+
+/**
+ * Product Card Plan
+ * Creates a card with title, description, price, image placeholder, and buy button
+ */
+function createProductCardPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Product', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'Image', padding: 12 },
+              // Placeholder for image
+            },
+            {
+              id: 'root_Card_0_Card_1',
+              component: 'Card',
+              props: { title: 'Product Name', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_2',
+              component: 'Card',
+              props: { title: '$99.99', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Button_0',
+              component: 'Button',
+              props: { label: 'Buy Now', variant: 'primary' },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Profile Card Plan
+ * Creates a card displaying user/profile information
+ */
+function createProfileCardPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Profile', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'Avatar Placeholder', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_1',
+              component: 'Card',
+              props: { title: 'Name', padding: 8 },
+            },
+            {
+              id: 'root_Card_0_Card_2',
+              component: 'Card',
+              props: { title: 'Contact Info', padding: 8 },
+            },
+            {
+              id: 'root_Card_0_Button_0',
+              component: 'Button',
+              props: { label: 'View Profile', variant: 'primary' },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Stat Card Plan
+ * Creates a card displaying statistics/metrics
+ */
+function createStatCardPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Statistics', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'Metric 1: 1,234', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_1',
+              component: 'Card',
+              props: { title: 'Metric 2: 5,678', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_2',
+              component: 'Card',
+              props: { title: 'Metric 3: 9,012', padding: 12 },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Hero Section Plan
+ * Creates a large header/banner section
+ */
+function createHeroSectionPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 0 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Hero Section', padding: 48 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'Main Heading', padding: 16 },
+            },
+            {
+              id: 'root_Card_0_Card_1',
+              component: 'Card',
+              props: { title: 'Subheading or Description', padding: 16 },
+            },
+            {
+              id: 'root_Card_0_Button_0',
+              component: 'Button',
+              props: { label: 'Call to Action', variant: 'primary' },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Gallery Plan
+ * Creates a grid layout for displaying multiple items
+ */
+function createGalleryPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'GridLayout',
+      props: { gap: 16, padding: 24, columns: 3 },
+      children: [
+        {
+          id: 'root_GridLayout_0_Card_0',
+          component: 'Card',
+          props: { title: 'Item 1', padding: 12 },
+        },
+        {
+          id: 'root_GridLayout_0_Card_1',
+          component: 'Card',
+          props: { title: 'Item 2', padding: 12 },
+        },
+        {
+          id: 'root_GridLayout_0_Card_2',
+          component: 'Card',
+          props: { title: 'Item 3', padding: 12 },
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Testimonial/Review Card Plan
+ */
+function createTestimonialPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Testimonial', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'Review Text', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_1',
+              component: 'Card',
+              props: { title: '- Author Name', padding: 8 },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Pricing Card Plan
+ * Creates a pricing tier card with features and CTA
+ */
+function createPricingCardPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Pricing Plan', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'Standard - $49/month', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Card_1',
+              component: 'Card',
+              props: { title: 'Features included', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Button_0',
+              component: 'Button',
+              props: { label: 'Subscribe', variant: 'primary' },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Search Bar Plan
+ * Creates a card with search input
+ */
+function createSearchBarPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Search', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Input_0',
+              component: 'Input',
+              props: {
+                label: 'Search',
+                type: 'text',
+                placeholder: 'Search...',
+              },
+            },
+            {
+              id: 'root_Card_0_Button_0',
+              component: 'Button',
+              props: { label: 'Search', variant: 'primary' },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Item Card Plan
+ * Creates a card for displaying a single item
+ */
+function createItemCardPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+  return {
+    modificationType,
+    root: {
+      id: 'root',
+      component: 'ColumnLayout',
+      props: { gap: 16, padding: 24 },
+      children: [
+        {
+          id: 'root_Card_0',
+          component: 'Card',
+          props: { title: 'Item', padding: 16 },
+          children: [
+            {
+              id: 'root_Card_0_Card_0',
+              component: 'Card',
+              props: { title: 'Item Details', padding: 12 },
+            },
+            {
+              id: 'root_Card_0_Button_0',
+              component: 'Button',
+              props: { label: 'View Details', variant: 'primary' },
+            },
+          ],
         },
       ],
     },
