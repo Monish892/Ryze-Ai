@@ -348,9 +348,125 @@ function parseFormFields(intent: string): Array<{ label: string; type: string; p
 }
 
 /**
+ * Parse table column definitions from intent
+ * Detects column names like: email, password, name, department, salary, etc.
+ */
+function parseTableColumns(intent: string): Array<{ header: string; key: string }> {
+  const lower = intent.toLowerCase();
+  const columns: Array<{ header: string; key: string }> = [];
+
+  // Column patterns: detect column types mentioned in the intent
+  const patterns = [
+    { keyword: /employee\s+name|employee\s+id|name/i, header: 'Name', key: 'name' },
+    { keyword: /department/i, header: 'Department', key: 'department' },
+    { keyword: /salary/i, header: 'Salary', key: 'salary' },
+    { keyword: /email|e-mail/i, header: 'Email', key: 'email' },
+    { keyword: /phone|phone\s+number/i, header: 'Phone', key: 'phone' },
+    { keyword: /age/i, header: 'Age', key: 'age' },
+    { keyword: /position|role|title/i, header: 'Position', key: 'position' },
+    { keyword: /status/i, header: 'Status', key: 'status' },
+    { keyword: /date|date.*joined/i, header: 'Date Joined', key: 'dateJoined' },
+    { keyword: /id|employee\s+id|user\s+id/i, header: 'ID', key: 'id' },
+    { keyword: /price/i, header: 'Price', key: 'price' },
+    { keyword: /quantity|qty/i, header: 'Quantity', key: 'quantity' },
+    { keyword: /description|desc/i, header: 'Description', key: 'description' },
+    { keyword: /address/i, header: 'Address', key: 'address' },
+  ];
+
+  for (const pattern of patterns) {
+    if (pattern.keyword.test(lower)) {
+      // Don't add duplicates  
+      if (!columns.find(c => c.key === pattern.key)) {
+        columns.push({
+          header: pattern.header,
+          key: pattern.key,
+        });
+      }
+    }
+  }
+
+  // If no columns detected, use default (ID, Name)
+  if (columns.length === 0) {
+    columns.push(
+      { header: 'ID', key: 'id' },
+      { header: 'Name', key: 'name' }
+    );
+  }
+
+  return columns;
+}
+
+/**
+ * Generate sample data for table based on columns
+ */
+function generateTableData(columns: Array<{ header: string; key: string }>): any[] {
+  const rows = [
+    {
+      id: '1',
+      name: 'John Doe',
+      department: 'Engineering',
+      salary: '$95,000',
+      email: 'john.doe@company.com',
+      phone: '(555) 123-4567',
+      age: '32',
+      position: 'Senior Developer',
+      status: 'Active',
+      dateJoined: '2020-01-15',
+      price: '$49.99',
+      quantity: '10',
+      description: 'Product A',
+      address: '123 Main St, NY',
+    },
+    {
+      id: '2',
+      name: 'Jane Smith',
+      department: 'Marketing',
+      salary: '$75,000',
+      email: 'jane.smith@company.com',
+      phone: '(555) 234-5678',
+      age: '28',
+      position: 'Marketing Manager',
+      status: 'Active',
+      dateJoined: '2021-03-22',
+      price: '$39.99',
+      quantity: '25',
+      description: 'Product B',
+      address: '456 Oak Ave, LA',
+    },
+    {
+      id: '3',
+      name: 'Mike Johnson',
+      department: 'Sales',
+      salary: '$70,000',
+      email: 'mike.johnson@company.com',
+      phone: '(555) 345-6789',
+      age: '35',
+      position: 'Sales Representative',
+      status: 'Active',
+      dateJoined: '2019-06-10',
+      price: '$59.99',
+      quantity: '15',
+      description: 'Product C',
+      address: '789 Pine Rd, Chicago',
+    },
+  ];
+
+  // Filter to only include the columns requested
+  const columnKeys = columns.map(c => c.key);
+  return rows.map(row => {
+    const filtered: any = {};
+    columnKeys.forEach(key => {
+      filtered[key] = (row as any)[key] || '';
+    });
+    return filtered;
+  });
+}
+
+/**
  * Parse intent handling negations like "remove", "without", "no"
  * Returns the effective state after processing all directives
  */
+
 function parseComponentRequirement(keyword: string, intent: string): boolean {
   const lower = intent.toLowerCase();
   
@@ -618,7 +734,7 @@ function parseIntentToDeterministicPlan(
 
   // 23. Table
   if (hasTable) {
-    return createTablePlan(modificationType);
+    return createTablePlan(modificationType, intent);
   }
 
   // Default: simple card layout
@@ -1425,7 +1541,13 @@ function createFormPlan(
   };
 }
 
-function createTablePlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+function createTablePlan(modificationType: 'create' | 'edit' | 'regenerate', intent: string): UIPlan {
+  // Parse columns from intent
+  const columns = parseTableColumns(intent);
+  
+  // Generate appropriate sample data
+  const data = generateTableData(columns);
+
   return {
     modificationType,
     root: {
@@ -1437,8 +1559,16 @@ function createTablePlan(modificationType: 'create' | 'edit' | 'regenerate'): UI
           id: 'root_Card_0',
           component: 'Card',
           props: { title: 'Data Table', padding: 16 },
-          // Removed: Don't auto-populate with sample data
-          // User should specify columns and data they need
+          children: [
+            {
+              id: 'root_Card_0_Table_0',
+              component: 'Table',
+              props: {
+                columns: columns,
+                data: data,
+              },
+            },
+          ],
         },
       ],
     },
