@@ -296,6 +296,58 @@ function applyEditModePatch(intent: string, previousPlan: UIPlan): UIPlan {
 }
 
 /**
+ * Extract form field definitions from intent
+ * Detects common field types: email, password, username, name, phone, search, etc.
+ */
+function parseFormFields(intent: string): Array<{ label: string; type: string; placeholder: string }> {
+  const lower = intent.toLowerCase();
+  const fields: Array<{ label: string; type: string; placeholder: string }> = [];
+
+  // Field patterns: detect field types mentioned in the intent
+  const patterns = [
+    { keyword: /email/i, label: 'Email', type: 'email', placeholder: 'Enter email' },
+    { keyword: /password/i, label: 'Password', type: 'password', placeholder: 'Enter password' },
+    { keyword: /username|user name/i, label: 'Username', type: 'text', placeholder: 'Enter username' },
+    { keyword: /confirm password|re-enter password/i, label: 'Confirm Password', type: 'password', placeholder: 'Confirm password' },
+    { keyword: /full name|name/i, label: 'Full Name', type: 'text', placeholder: 'Enter full name' },
+    { keyword: /phone|phone number/i, label: 'Phone', type: 'tel', placeholder: 'Enter phone number' },
+    { keyword: /search/i, label: 'Search', type: 'text', placeholder: 'Search...' },
+    { keyword: /address/i, label: 'Address', type: 'text', placeholder: 'Enter address' },
+    { keyword: /comment|message|feedback/i, label: 'Message', type: 'text', placeholder: 'Enter message' },
+  ];
+
+  for (const pattern of patterns) {
+    if (pattern.keyword.test(lower)) {
+      fields.push({
+        label: pattern.label,
+        type: pattern.type,
+        placeholder: pattern.placeholder,
+      });
+    }
+  }
+
+  // If no specific fields detected but it's a login form, add email and password
+  if (fields.length === 0 && /login|sign in/i.test(lower)) {
+    fields.push(
+      { label: 'Email', type: 'email', placeholder: 'Enter email' },
+      { label: 'Password', type: 'password', placeholder: 'Enter password' }
+    );
+  }
+
+  // If no fields detected but it's a signup/register form, add common signup fields
+  if (fields.length === 0 && /sign up|register|signup/i.test(lower)) {
+    fields.push(
+      { label: 'Email', type: 'email', placeholder: 'Enter email' },
+      { label: 'Username', type: 'text', placeholder: 'Enter username' },
+      { label: 'Password', type: 'password', placeholder: 'Enter password' },
+      { label: 'Confirm Password', type: 'password', placeholder: 'Confirm password' }
+    );
+  }
+
+  return fields;
+}
+
+/**
  * Parse intent handling negations like "remove", "without", "no"
  * Returns the effective state after processing all directives
  */
@@ -500,7 +552,7 @@ function parseIntentToDeterministicPlan(
 
   // 13. Form
   if (hasForm) {
-    return createFormPlan(modificationType);
+    return createFormPlan(modificationType, intent);
   }
 
   // 14. Table
@@ -1250,7 +1302,50 @@ function createTwoColumnsLayout(
   };
 }
 
-function createFormPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIPlan {
+function createFormPlan(
+  modificationType: 'create' | 'edit' | 'regenerate',
+  intent: string
+): UIPlan {
+  // Parse fields from intent
+  const fields = parseFormFields(intent);
+
+  // Extract a title from intent if possible
+  let formTitle = 'Form';
+  if (/login|sign in/i.test(intent)) {
+    formTitle = 'Login';
+  } else if (/sign up|register|signup/i.test(intent)) {
+    formTitle = 'Register';
+  }
+
+  // Build field children
+  const cardChildren: any[] = [];
+
+  // Add input fields
+  fields.forEach((field, index) => {
+    cardChildren.push({
+      id: `root_Card_0_Input_${index}`,
+      component: 'Input',
+      props: {
+        label: field.label,
+        type: field.type,
+        placeholder: field.placeholder,
+      },
+    });
+  });
+
+  // Add submit button
+  if (cardChildren.length > 0) {
+    const submitLabel = /login|sign in/i.test(intent) ? 'Login' : 'Submit';
+    cardChildren.push({
+      id: `root_Card_0_Button_0`,
+      component: 'Button',
+      props: {
+        label: submitLabel,
+        variant: 'primary',
+      },
+    });
+  }
+
   return {
     modificationType,
     root: {
@@ -1261,9 +1356,8 @@ function createFormPlan(modificationType: 'create' | 'edit' | 'regenerate'): UIP
         {
           id: 'root_Card_0',
           component: 'Card',
-          props: { title: 'Form', padding: 16 },
-          // Removed: Don't auto-populate with generic Input fields
-          // User should specify what inputs they need
+          props: { title: formTitle, padding: 16 },
+          children: cardChildren.length > 0 ? cardChildren : undefined,
         },
       ],
     },
